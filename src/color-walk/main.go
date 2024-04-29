@@ -153,6 +153,7 @@ func FillArea(target *ebiten.Image, x, y int, w, h int, rgba color.RGBA) {
 func main() {
 	ebiten.SetWindowTitle("lopix-examples/color-walk")
 	lopix.SetResolution(21, 21)
+	lopix.SetScalingFilter(lopix.Nearest) // temporary patch until I actually implement things
 	// lopix.AutoResizeWindow() // (not adequate for WASM)
 	err := lopix.Run(&Game{ level: -1 })
 	if err != nil { panic(err) }
