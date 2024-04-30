@@ -10,11 +10,10 @@ import "github.com/hajimehoshi/ebiten/v2/inpututil"
 import "github.com/tinne26/lopix"
 
 var Colors []color.RGBA = []color.RGBA{
-	{215,  48, 48, 255}, {101,  78, 206, 255}, {65,  175,  79, 255},
-	{255,  0,  63, 255}, {255, 199,  17, 255}, {183,  47, 214, 255},
-	{255, 22, 216, 255}, {255, 185, 173, 255}, { 37, 186, 109, 255},
-	{104, 216, 82, 255}, {232, 158, 109, 255}, { 79,  72, 127, 255},
-	{89, 127, 124, 255}, {127,  89,  89, 255}, {121, 127,  89, 255},
+	{215,  48, 48, 255}, {101, 78, 206, 255}, {65,  175,  79, 255}, {255,   0,  63, 255},
+	{255, 199, 17, 255}, {183, 47, 214, 255}, {255,  22, 216, 255}, {255, 185, 173, 255},
+	{85, 221, 151, 255}, {104, 216, 82, 255}, {232, 158, 109, 255}, { 73,  66, 118, 255},
+	{89, 127, 124, 255}, {127, 89,  89, 255}, {121, 127,  89, 255}, {226, 132,   0, 255},
 }
 
 type Game struct {
@@ -45,10 +44,12 @@ func (self *Game) Update() error {
 			self.duration = time.Now().Sub(self.start)
 			self.level = 22
 		}
-	} else if self.GetInputDir() != -1 { // result screen
+	} else { // result screen
+		if self.GetInputDir() == -1 { return nil }
 		self.level = -1
 	}
-
+	
+	lopix.Redraw().Request()
 	return nil
 }
 
@@ -85,15 +86,15 @@ retry:
 
 func (self *Game) SwapColors() {
 	a, b := rand.IntN(4), rand.IntN(4)
-	if a == self.answer {
-		self.answer = b
-	} else if b == self.answer {
-		self.answer = a
+	switch self.answer {
+	case a: self.answer = b
+	case b: self.answer = a
 	}
 	self.colors[a], self.colors[b] = self.colors[b], self.colors[a]
 }
 
 func (self *Game) Draw(canvas *ebiten.Image) {
+	if !lopix.Redraw().Pending() { return }
 	canvas.Fill(color.RGBA{216, 243, 255, 255})
 
 	dark := color.RGBA{48, 48, 48, 255}
@@ -113,7 +114,7 @@ func (self *Game) Draw(canvas *ebiten.Image) {
 		}{ FillArea(canvas, bar.X, bar.Y, 1, 3, dark) }
 		for _, pix := range []image.Point{
 			{9, 10}, {11, 10}, {7, 7}, {13, 7}, {7, 13}, {13, 13},
-		} { Fill(canvas, pix.X, pix.Y, dark) }
+		} { lopix.DrawPixel(canvas, pix.X, pix.Y, dark) }
 	} else { // result screen
 		if self.level == 22 { // lose screen case
 			canvas.Fill(color.RGBA{0, 0, 0, 255})
@@ -124,37 +125,35 @@ func (self *Game) Draw(canvas *ebiten.Image) {
 		minutes := millis/60000
 		millis -= minutes*60000
 		if minutes > 99 { minutes = 99 }
-		Fill(canvas, 1, 4, dark); Fill(canvas, 1, 6, dark)
-		for i = 0; i < minutes/10; i++ { Fill(canvas, 3 + int(i*2), 4, Colors[0]) }
-		for i = 0; i < minutes%10; i++ { Fill(canvas, 3 + int(i*2), 6, Colors[0]) }
+		lopix.DrawPixel(canvas, 1, 4, dark); lopix.DrawPixel(canvas, 1, 6, dark)
+		for i = 0; i < minutes/10; i++ { lopix.DrawPixel(canvas, 3 + int(i*2), 4, Colors[0]) }
+		for i = 0; i < minutes%10; i++ { lopix.DrawPixel(canvas, 3 + int(i*2), 6, Colors[0]) }
 
 		seconds := millis/1000
 		millis -= seconds*1000
-		Fill(canvas, 1, 9, dark); Fill(canvas, 1, 11, dark)
-		for i = 0; i < seconds/10; i++ { Fill(canvas, 3 + int(i*2),  9, Colors[1]) }
-		for i = 0; i < seconds%10; i++ { Fill(canvas, 3 + int(i*2), 11, Colors[1]) }
+		lopix.DrawPixel(canvas, 1, 9, dark); lopix.DrawPixel(canvas, 1, 11, dark)
+		for i = 0; i < seconds/10; i++ { lopix.DrawPixel(canvas, 3 + int(i*2),  9, Colors[1]) }
+		for i = 0; i < seconds%10; i++ { lopix.DrawPixel(canvas, 3 + int(i*2), 11, Colors[1]) }
 
 		if millis > 99 { millis /= 10 }
-		Fill(canvas, 1, 14, dark); Fill(canvas, 1, 16, dark)
-		for i = 0; i < millis/10; i++ { Fill(canvas, 3 + int(i*2), 14, Colors[2]) }
-		for i = 0; i < millis%10; i++ { Fill(canvas, 3 + int(i*2), 16, Colors[2]) }
+		lopix.DrawPixel(canvas, 1, 14, dark); lopix.DrawPixel(canvas, 1, 16, dark)
+		for i = 0; i < millis/10; i++ { lopix.DrawPixel(canvas, 3 + int(i*2), 14, Colors[2]) }
+		for i = 0; i < millis%10; i++ { lopix.DrawPixel(canvas, 3 + int(i*2), 16, Colors[2]) }
 	}
-}
-
-func Fill(target *ebiten.Image, x, y int, rgba color.RGBA) {
-	FillArea(target, x, y, 1, 1, rgba)
 }
 
 func FillArea(target *ebiten.Image, x, y int, w, h int, rgba color.RGBA) {
 	rect := image.Rect(x, y, x + w, y + h)
-	target.SubImage(rect).(*ebiten.Image).Fill(rgba)
+	lopix.DrawRect(target, rect, rgba)
 }
 
 func main() {
 	ebiten.SetWindowTitle("lopix-examples/color-walk")
+	ebiten.SetScreenClearedEveryFrame(false)
 	lopix.SetResolution(21, 21)
 	lopix.SetScalingFilter(lopix.Nearest) // temporary patch until I actually implement things
-	// lopix.AutoResizeWindow() // (not adequate for WASM)
+	lopix.Redraw().SetManaged(true)
+	lopix.AutoResizeWindow()
 	err := lopix.Run(&Game{ level: -1 })
 	if err != nil { panic(err) }
 }
