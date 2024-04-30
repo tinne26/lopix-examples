@@ -1,4 +1,4 @@
-module github.com/tinne26/lopix/examples/colorwalk
+module github.com/tinne26/lopix-examples/src/color-walk
 
 go 1.22.2
 
