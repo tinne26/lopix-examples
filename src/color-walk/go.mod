@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.7.2
-	github.com/tinne26/lopix v0.0.0-20240430104225-601e5548e816
+	github.com/tinne26/lopix v0.0.0-20240502185055-9cde0730eae8
 )
 
 require (

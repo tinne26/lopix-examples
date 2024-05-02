@@ -10,9 +10,9 @@ import "github.com/hajimehoshi/ebiten/v2/inpututil"
 import "github.com/tinne26/lopix"
 
 var Colors []color.RGBA = []color.RGBA{
-	{215,  48, 48, 255}, {101, 78, 206, 255}, {65,  175,  79, 255}, {255,   0,  63, 255},
+	{215,  48, 48, 255}, {101, 78, 206, 255}, {65,  175,  79, 255}, {104, 216,  82, 255},
 	{255, 199, 17, 255}, {183, 47, 214, 255}, {255,  22, 216, 255}, {255, 185, 173, 255},
-	{85, 221, 151, 255}, {104, 216, 82, 255}, {232, 158, 109, 255}, { 73,  66, 118, 255},
+	{85, 221, 151, 255}, {255,  0,  63, 255}, {232, 158, 109, 255}, { 73,  66, 118, 255},
 	{89, 127, 124, 255}, {127, 89,  89, 255}, {121, 127,  89, 255}, {226, 132,   0, 255},
 }
 
@@ -22,10 +22,17 @@ type Game struct {
 	level int
 	colors [4]color.RGBA
 	answer int
+	deathWait int
 	touches []ebiten.TouchID
 }
 
 func (self *Game) Update() error {
+	if self.deathWait > 0 {
+		self.deathWait -= 1
+		self.level = self.deathWait - 1
+		return nil
+	}
+
 	if self.level == -1 { // initialization tick
 		for i := range 4 { self.RerollColor(i) }
 		self.level = 0
@@ -41,8 +48,7 @@ func (self *Game) Update() error {
 			self.RerollColor(self.answer)
 			for range self.level/3 { self.SwapColors() }
 		} else {
-			self.duration = time.Now().Sub(self.start)
-			self.level = 22
+			self.deathWait = 33
 		}
 	} else { // result screen
 		if self.GetInputDir() == -1 { return nil }
@@ -95,10 +101,17 @@ func (self *Game) SwapColors() {
 
 func (self *Game) Draw(canvas *ebiten.Image) {
 	if !lopix.Redraw().Pending() { return }
-	canvas.Fill(color.RGBA{216, 243, 255, 255})
+	if self.deathWait > 0 {
+		canvas.Fill(Colors[0])
+		return
+	}
 
-	dark := color.RGBA{48, 48, 48, 255}
+	// fill and draw content depending on the scene
+	dark     := color.RGBA{48, 48, 48, 255}
+	progress := color.RGBA{186, 245, 212, 255}
 	if self.level < 21 { // playing screen
+		canvas.Fill(color.RGBA{216, 243, 255, 255})
+		FillArea(canvas, 0, 0, self.level, 21, progress)
 		FillArea(canvas,  9,  3, 3, 3, self.colors[0]) // up
 		FillArea(canvas, 15,  9, 3, 3, self.colors[1]) // right
 		FillArea(canvas,  9, 15, 3, 3, self.colors[2]) // down
@@ -116,10 +129,7 @@ func (self *Game) Draw(canvas *ebiten.Image) {
 			{9, 10}, {11, 10}, {7, 7}, {13, 7}, {7, 13}, {13, 13},
 		} { lopix.DrawPixel(canvas, pix.X, pix.Y, dark) }
 	} else { // result screen
-		if self.level == 22 { // lose screen case
-			canvas.Fill(color.RGBA{0, 0, 0, 255})
-		}
-		
+		canvas.Fill(progress)
 		var i int64
 		millis := self.duration.Milliseconds()
 		minutes := millis/60000
@@ -151,7 +161,6 @@ func main() {
 	ebiten.SetWindowTitle("lopix-examples/color-walk")
 	ebiten.SetScreenClearedEveryFrame(false)
 	lopix.SetResolution(21, 21)
-	lopix.SetScalingFilter(lopix.Nearest) // temporary patch until I actually implement things
 	lopix.Redraw().SetManaged(true)
 	lopix.AutoResizeWindow()
 	err := lopix.Run(&Game{ level: -1 })
